@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal WiFi Monitor Pro ID - Android Firebase</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        /* --- SEMUA CSS ASLI (TIDAK DIKURANGI) --- */
+        :root {
+            --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            --danger-gradient: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+            --bg-dark: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.95);
+            --sidebar-bg: rgba(15, 23, 42, 0.98);
+            --text-light: #f1f5f9;
+            --text-gray: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+            --table-header-bg: rgba(0, 0, 0, 0.3);
+        }
+
+        body.light-mode {
+            --bg-dark: #f1f5f9;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --sidebar-bg: rgba(255, 255, 255, 0.98);
+            --text-light: #1e293b;
+            --text-gray: #475569;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.4);
+            --table-header-bg: rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at top right, #1e293b, transparent 40%), 
+                radial-gradient(circle at bottom left, #172554, transparent 40%);
+            color: var(--text-light);
+            margin: 0; padding: 20px; min-height: 100vh;
+            -webkit-user-select: none; -moz-user-select: none; user-select: none;
+            overflow-x: hidden;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        body.light-mode {
+            background-image: 
+                radial-gradient(circle at top right, #dbeafe, transparent 40%), 
+                radial-gradient(circle at bottom left, #bfdbfe, transparent 40%);
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; transition: 0.3s; }
+
+        /* SKELETON LOADING */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 4px;
+            color: transparent !important;
+            min-width: 100px;
+            display: inline-block;
+        }
+        
+        body.light-mode .skeleton {
+             background: linear-gradient(90deg, rgba(0,0,0,0.05) 25%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.05) 75%);
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* INITIAL LOADER */
+        #initial-loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-dark); z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+            transition: opacity 0.5s;
+        }
+        .loader-spinner {
+            width: 50px; height: 50px;
+            border: 5px solid rgba(59, 130, 246, 0.3);
+            border-top: 5px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* HEADER */
+        .header-action { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .header-left h1 { font-size: 1.8rem; margin: 0; font-weight: 700; color: var(--text-light); text-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header-left p { margin: 5px 0 0 0; color: var(--text-gray); font-size: 0.9rem; }
+
+        .hamburger-btn {
+            font-size: 1.5rem; color: var(--text-light); cursor: pointer; 
+            padding: 10px; border-radius: 8px; transition: 0.3s;
+            background: rgba(255, 255, 255, 0.05); border: var(--glass-border);
+        }
+        body.light-mode .hamburger-btn { background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); }
+        .hamburger-btn:hover { background: rgba(255, 255, 255, 0.15); transform: scale(1.05); }
+
+        .creator-badge { 
+            display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; 
+            padding: 6px 15px; background: rgba(255, 255, 255, 0.05); 
+            border: var(--glass-border); border-radius: 20px; 
+            font-size: 0.85rem; color: var(--text-gray); backdrop-filter: blur(5px); 
+        }
+        body.light-mode .creator-badge { background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); }
+
+        .router-badge { 
+            background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); 
+            color: #60a5fa; padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; 
+            display: inline-flex; align-items: center; gap: 8px; margin-top:10px; 
+            margin-left: 10px; font-weight: 600;
+        }
+        body.light-mode .router-badge { color: #2563eb; background: rgba(37, 99, 235, 0.1); }
+
+        /* SIDEBAR */
+        .sidebar {
+            position: fixed; top: 0; right: -320px; width: 280px; height: 100%;
+            background: var(--sidebar-bg); border-left: var(--glass-border);
+            backdrop-filter: blur(15px); z-index: 1000; 
+            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 25px; display: flex; flex-direction: column;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.2);
+        }
+        .sidebar.active { right: 0; }
+
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .sidebar-title { font-weight: 700; font-size: 1.2rem; color: #60a5fa; }
+        body.light-mode .sidebar-title { color: #2563eb; }
+        .close-btn { cursor: pointer; font-size: 1.5rem; color: var(--text-gray); transition: 0.3s; }
+        .close-btn:hover { color: #ef4444; transform: rotate(90deg); }
+
+        .realtime-widget {
+            background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 12px;
+            text-align: center; margin-bottom: 30px; border: var(--glass-border);
+        }
+        body.light-mode .realtime-widget { background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.1); }
+        .rt-time { font-size: 2rem; font-weight: 700; color: var(--text-light); line-height: 1; margin-bottom: 5px; font-family: monospace; }
+        .rt-date { font-size: 0.8rem; color: var(--text-gray); }
+
+        .menu-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+        .menu-item {
+            padding: 12px 15px; border-radius: 10px; cursor: pointer;
+            display: flex; align-items: center; gap: 12px; color: var(--text-light);
+            transition: 0.2s; border: 1px solid transparent;
+        }
+        .menu-item:hover { background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: #60a5fa; }
+        body.light-mode .menu-item:hover { color: #2563eb; }
+        .menu-item i { width: 20px; text-align: center; }
+
+        .overlay-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 999; display: none; 
+            opacity: 0; transition: 0.3s; backdrop-filter: blur(2px);
+        }
+        .overlay-screen.active { display: block; opacity: 1; }
+
+        /* CARDS & WIDGETS */
+        .wifi-info-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 15px; padding: 20px; margin-bottom: 25px;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.15);
+        }
+        .wifi-detail { display: flex; align-items: center; gap: 15px; }
+        .wifi-icon-box { 
+            width: 45px; height: 45px; background: rgba(59, 130, 246, 0.2); 
+            border-radius: 12px; display: flex; align-items: center; justify-content: center; 
+            color: #60a5fa; font-size: 1.3rem; 
+        }
+        body.light-mode .wifi-icon-box { color: #2563eb; background: rgba(37, 99, 235, 0.1); }
+
+        .wifi-text label { display: block; font-size: 0.75rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+        .wifi-text span { font-size: 1.1rem; font-weight: 700; color: var(--text-light); }
+        .pass-hidden { filter: blur(4px); cursor: pointer; transition: 0.3s; }
+        .pass-hidden:hover { filter: blur(0px); }
+        .btn-copy-wifi { background: rgba(255,255,255,0.1); border: none; color: var(--text-light); padding: 5px 10px; border-radius: 5px; cursor: pointer; margin-left: 10px; font-size: 0.8rem; transition: 0.2s; }
+        body.light-mode .btn-copy-wifi { background: rgba(0,0,0,0.1); }
+        .btn-copy-wifi:hover { background: #34d399; color: #000; }
+
+        /* Status Card & Chart */
+        .status-card { 
+            background: var(--card-bg); padding: 30px; border-radius: 20px; 
+            margin-bottom: 30px; backdrop-filter: blur(12px); border: var(--glass-border); 
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1); 
+            display: flex; align-items: center; justify-content: space-between; gap: 20px;
+        }
+        .status-left { text-align: left; flex: 1; }
+        .status-right { width: 140px; height: 140px; position: relative; }
+
+        .big-number { font-size: 4rem; font-weight: 700; color: var(--text-light); display: block; margin: 5px 0; text-shadow: 0 0 20px rgba(0,0,0,0.1); line-height: 1; }
+        .card-title { font-size: 0.9rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 2px; font-weight: 600; }
+        
+        .action-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+
+        .refresh-btn { 
+            background: var(--primary-gradient); color: white; border: none; 
+            padding: 10px 20px; border-radius: 50px; cursor: pointer; font-size: 0.9rem; 
+            font-weight: 600; transition: all 0.3s; 
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.4); 
+            display: inline-flex; align-items: center; gap: 8px; 
+        }
+        .refresh-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(118, 75, 162, 0.6); }
+
+        .export-btn {
+            background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 10px 20px; border-radius: 50px; cursor: pointer; font-size: 0.9rem; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 8px; transition: 0.3s;
+        }
+        body.light-mode .export-btn { color: #059669; border-color: #059669; background: rgba(5, 150, 105, 0.1); }
+        .export-btn:hover { background: #34d399; color: #000; }
+
+        .last-update-text { margin-top: 15px; font-size: 0.8rem; color: var(--text-gray); display: flex; align-items: center; gap: 6px; }
+
+        /* Speedtest Mini Card */
+        .speedtest-row {
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(255, 255, 255, 0.03); padding: 15px 20px;
+            border-radius: 12px; margin-bottom: 25px; border: var(--glass-border);
+        }
+        body.light-mode .speedtest-row { background: rgba(0,0,0,0.02); }
+
+        /* TABLES */
+        .table-section-title { margin: 35px 0 15px 0; font-size: 1.1rem; font-weight: 600; color: var(--text-light); display: flex; align-items: center; justify-content: space-between; border-bottom: var(--glass-border); padding-bottom: 10px; }
+        .count-badge { background: rgba(255, 255, 255, 0.1); color: var(--text-light); padding: 4px 12px; border-radius: 12px; font-size: 0.9rem; font-weight: bold; }
+        body.light-mode .count-badge { background: rgba(0,0,0,0.1); color: var(--text-gray); }
+
+        /* RESPONSIVE TABLE */
+        .device-list { 
+            background: var(--card-bg); border-radius: 20px; border: var(--glass-border); 
+            overflow: hidden; backdrop-filter: blur(12px); margin-bottom: 20px; 
+            overflow-x: auto; 
+            white-space: nowrap; 
+        }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { background-color: var(--table-header-bg); color: var(--text-gray); padding: 18px; text-align: left; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { padding: 18px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
+        body.light-mode td { border-bottom: 1px solid rgba(0,0,0,0.05); }
+        tr:last-child td { border-bottom: none; }
+        
+        .device-name { display: flex; align-items: center; gap: 12px; font-weight: 600; color: var(--text-light); }
+        .device-icon { width: 40px; height: 40px; background: rgba(255, 255, 255, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #a78bfa; }
+        body.light-mode .device-icon { background: rgba(0,0,0,0.05); color: #7c3aed; }
+        
+        .ip-badge { background: rgba(59, 130, 246, 0.15); color: #93c5fd; padding: 4px 10px; border-radius: 6px; font-family: monospace; font-size: 0.9rem; letter-spacing: 0.5px; }
+        body.light-mode .ip-badge { color: #2563eb; }
+
+        .status-badge-online { display: inline-flex; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.2); }
+        body.light-mode .status-badge-online { color: #059669; border-color: #059669; }
+        .dot { width: 8px; height: 8px; background-color: #34d399; border-radius: 50%; animation: pulse-green 2s infinite; }
+        @keyframes pulse-green { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(52, 211, 153, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); } }
+
+        .status-badge-offline { display: inline-flex; align-items: center; gap: 8px; background: rgba(148, 163, 184, 0.1); color: #94a3b8; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 500; border: 1px solid rgba(148, 163, 184, 0.2); }
+        body.light-mode .status-badge-offline { color: #64748b; border-color: #cbd5e1; }
+        .row-offline td { opacity: 0.6; filter: grayscale(80%); transition: 0.3s; }
+        .row-offline:hover td { opacity: 1; filter: grayscale(0%); background-color: rgba(255, 255, 255, 0.05); }
+
+        .btn-block { background: var(--danger-gradient); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: 0.3s; display: flex; align-items: center; gap: 6px; }
+        .btn-block:hover { transform: scale(1.05); box-shadow: 0 6px 15px rgba(255, 65, 108, 0.5); }
+
+        .ping-badge { font-family: monospace; font-weight: bold; font-size: 0.9rem; display: flex; flex-direction: column; line-height: 1.2; }
+        .ping-good { color: #34d399; } body.light-mode .ping-good { color: #059669; }
+        .ping-med { color: #facc15; } body.light-mode .ping-med { color: #d97706; }
+        .ping-bad { color: #ef4444; } body.light-mode .ping-bad { color: #dc2626; }
+        .ping-desc { font-size: 0.7rem; font-weight: normal; opacity: 0.8; font-family: sans-serif;}
+
+        /* MODAL POPUP */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(8px); }
+        .modal-box { background: var(--card-bg); padding: 30px; border-radius: 20px; width: 90%; max-width: 420px; text-align: center; border: 1px solid var(--border-color); max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .modal-box h2 { color: var(--text-light); margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px; font-size: 1.4rem; }
+        .modal-text { color: var(--text-gray); font-size: 0.95rem; line-height: 1.6; text-align: left; }
+        .modal-text ul { padding-left: 20px; margin-top: 5px; }
+        .modal-text li { margin-bottom: 8px; }
+
+        .cred-box { background: rgba(0, 0, 0, 0.3); border: 1px dashed var(--border-color); padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; }
+        body.light-mode .cred-box { background: rgba(0,0,0,0.05); }
+        .cred-row { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 8px; }
+        body.light-mode .cred-row { background: rgba(255,255,255,0.5); }
+        .cred-label { font-size: 0.85rem; color: var(--text-gray); }
+        .cred-val { font-family: monospace; color: #60a5fa; font-weight: bold; letter-spacing: 1px; font-size: 1rem; }
+        body.light-mode .cred-val { color: #2563eb; }
+        
+        .btn-copy { background: none; border: none; color: var(--text-light); cursor: pointer; opacity: 0.7; transition: 0.3s; font-size: 1rem; }
+        .btn-copy:hover { opacity: 1; color: #34d399; transform: scale(1.1); }
+        
+        .info-hint { font-size: 0.85rem; color: #34d399; margin-top: 5px; opacity: 0; transition: 0.3s; font-weight: 600; }
+        .router-brand { color: #facc15; font-weight: bold; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; }
+        body.light-mode .router-brand { color: #d97706; }
+
+        .btn-confirm-danger { background: var(--danger-gradient); color: white; border: none; padding: 12px 24px; border-radius: 10px; cursor: pointer; font-weight: 600; width: 100%; text-align: center; margin-top: 15px; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-cancel { background: transparent; border: 1px solid var(--text-gray); color: var(--text-gray); padding: 10px 24px; border-radius: 10px; cursor: pointer; font-weight: 600; margin-top: 10px; width: 100%; }
+        .btn-close-modal { background: var(--primary-gradient); color: white; border: none; padding: 10px 24px; border-radius: 10px; cursor: pointer; font-weight: 600; float: right; margin-top: 15px; }
+
+        /* Settings Form */
+        .setting-row { margin-bottom: 20px; text-align: left; }
+        .setting-label { display: block; color: var(--text-light); margin-bottom: 8px; font-weight: 600; }
+        .setting-input { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-light); border-radius: 8px; outline: none; }
+        body.light-mode .setting-input { background: white; border: 1px solid #cbd5e1; }
+        .setting-input:focus { border-color: #60a5fa; }
+
+        /* CUSTOM TOAST */
+        .toast {
+            visibility: hidden; min-width: 280px; background: rgba(15, 23, 42, 0.95);
+            color: #fff; text-align: center; border-radius: 12px; padding: 16px;
+            position: fixed; z-index: 3000; left: 50%; bottom: 30px; transform: translateX(-50%);
+            border: 1px solid rgba(59, 130, 246, 0.5); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            font-size: 0.95rem; opacity: 0; transition: all 0.3s ease-in-out;
+            backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+        .toast i { color: #34d399; font-size: 1.1rem; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) { 
+            .hide-mobile { display: none; } 
+            .btn-block span { display: none; } 
+            .header-left h1 { font-size: 1.4rem; }
+            .wifi-info-card { justify-content: center; }
+            .wifi-detail { width: 100%; }
+            .status-card { flex-direction: column; text-align: center; }
+            .status-left { text-align: center; }
+            .status-right { width: 140px; height: 140px; position: relative; }
+            .action-buttons { justify-content: center; }
+            .last-update-text { justify-content: center; }
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+<div id="initial-loader">
+    <div style="text-align:center;">
+        <div class="loader-spinner" style="margin:0 auto 20px;"></div>
+        <div style="color:var(--text-gray);">Menunggu Data Android...</div>
+    </div>
+</div>
+
+<div id="custom-toast" class="toast">
+    <i class="fa-solid fa-circle-check"></i> <span id="toast-msg">Notifikasi...</span>
+</div>
+
+<div class="overlay-screen" id="overlayScreen" onclick="toggleSidebar()"></div>
+
+<div class="sidebar" id="sidebarMenu">
+    <div class="sidebar-header">
+        <span class="sidebar-title">Menu Utama</span>
+        <div class="close-btn" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></div>
+    </div>
+
+    <div class="realtime-widget">
+        <div class="rt-time" id="rt-clock">00:00:00</div>
+        <div class="rt-date" id="rt-date">...</div>
+    </div>
+
+    <ul class="menu-list">
+        <li class="menu-item" onclick="toggleSidebar()">
+            <i class="fa-solid fa-house"></i> Dashboard
+        </li>
+        <li class="menu-item" onclick="bukaRouterAsli()">
+            <i class="fa-solid fa-key"></i> Akses Router
+        </li>
+        <li class="menu-item" onclick="openModal('modalSettings')">
+            <i class="fa-solid fa-gear"></i> Pengaturan
+        </li>
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+        <li class="menu-item" onclick="openModal('modalPrivacy')">
+            <i class="fa-solid fa-shield-halved"></i> Kebijakan Privasi
+        </li>
+        <li class="menu-item" onclick="openModal('modalPolicy')">
+            <i class="fa-solid fa-file-contract"></i> Kebijakan Pengguna
+        </li>
+    </ul>
+    
+    <div style="margin-top: auto; font-size: 0.8rem; color: var(--text-gray); text-align: center;">
+        v4.0 Android Version + DB
+    </div>
+</div>
+
+<div class="container">
+    <div class="header-action">
+        <div class="header-left">
+            <h1><i class="fa-solid fa-wifi"></i> WiFi Monitor Pro ID</h1>
+            <p>Universal Router Detector & Network Manager</p>
+            <div class="creator-badge"><i class="fa-solid fa-code"></i> Developed by <span class="creator-name" style="font-weight:600; margin-left:4px;">AppWebiatecth</span></div>
+            <div class="router-badge" id="router-ip-display">Router: Detecting...</div>
+        </div>
+        
+        <div class="hamburger-btn" onclick="toggleSidebar()">
+            <i class="fa-solid fa-bars"></i>
+        </div>
+    </div>
+
+    <div class="wifi-info-card">
+        <div class="wifi-detail">
+            <div class="wifi-icon-box"><i class="fa-solid fa-signal"></i></div>
+            <div class="wifi-text">
+                <label>Nama WiFi (SSID)</label>
+                <span id="wifi-ssid" class="skeleton" style="width: 140px;"></span>
+            </div>
+        </div>
+        <div class="wifi-detail">
+            <div class="wifi-icon-box" style="color:#34d399; background:rgba(52, 211, 153, 0.2);"><i class="fa-solid fa-lock"></i></div>
+            <div class="wifi-text">
+                <label>Password</label>
+                <div style="display:flex; align-items:center;">
+                    <span id="wifi-pass" class="pass-hidden" onclick="revealPass()">*******</span>
+                    <button class="btn-copy-wifi" onclick="copyWifiPass()"><i class="fa-regular fa-copy"></i></button>
+                </div>
+            </div>
+        </div>
+        <div class="wifi-detail">
+            <div class="wifi-icon-box" style="color:#facc15; background:rgba(250, 204, 21, 0.2);"><i class="fa-solid fa-server"></i></div>
+            <div class="wifi-text">
+                <label>Gateway IP</label>
+                <span id="gateway-ip-display">...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="speedtest-row">
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <i class="fa-solid fa-gauge-high" style="color: #60a5fa; font-size: 1.5rem;"></i>
+            <div>
+                <div style="font-weight: 600; color: var(--text-light);">Internet Speedtest</div>
+                <div style="font-size: 0.8rem; color: var(--text-gray);">Cek kecepatan koneksi wifi & server</div>
+            </div>
+        </div>
+        <a href="https://fast.com" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">
+            <button class="btn-block" style="background: #3b82f6;">
+                <i class="fa-solid fa-play"></i> Mulai Tes
+            </button>
+        </a>
+    </div>
+
+    <div class="status-card">
+        <div class="status-left">
+            <div class="card-title">Perangkat Online</div>
+            <span class="big-number" id="total-count">0</span>
+            
+            <div class="last-update-text">
+                <i class="fa-regular fa-clock"></i> Updated: <span id="last-update-time">-</span>
+            </div>
+
+            <div class="action-buttons">
+                <button class="refresh-btn" onclick="manualRefresh()">
+                    <i class="fa-solid fa-arrows-rotate refresh-icon"></i> Refresh
+                </button>
+                <button class="export-btn" onclick="exportTableToCSV('laporan-wifi.csv')">
+                    <i class="fa-solid fa-file-csv"></i> Export CSV
+                </button>
+            </div>
+        </div>
+        <div class="status-right">
+            <canvas id="deviceChart"></canvas>
+        </div>
+    </div>
+
+    <div class="table-section-title">
+        <div><i class="fa-solid fa-circle" style="color:#34d399; margin-right:8px;"></i> Sedang Terhubung (Online)</div>
+    </div>
+    <div class="device-list">
+        <table>
+            <thead>
+                <tr>
+                    <th>Perangkat</th>
+                    <th>IP Address</th>
+                    <th>Ping / Kualitas</th>
+                    <th class="hide-mobile">MAC Address</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="online-table-body">
+                </tbody>
+        </table>
+    </div>
+
+    <div class="table-section-title">
+        <div><i class="fa-solid fa-clock-rotate-left" style="color:#94a3b8; margin-right:8px;"></i> Riwayat Perangkat (Offline)</div>
+        <span class="count-badge" id="total-offline-count">0</span>
+    </div>
+    <div class="device-list">
+        <table>
+            <thead>
+                <tr>
+                    <th>Perangkat</th>
+                    <th>IP Address</th>
+                    <th class="hide-mobile">MAC Address</th>
+                    <th>Terakhir Terlihat</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="offline-table-body">
+                 </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalBlock">
+    <div class="modal-box">
+        <i class="fa-solid fa-shield-halved fa-3x" style="color: #60a5fa; margin-bottom: 20px;"></i>
+        <h2>Akses Admin Router</h2>
+        
+        <p class="modal-text" style="text-align:center;">
+            Terdeteksi: <span id="brand-detected" class="router-brand">Generic</span><br>
+            <span style="font-size:0.85rem; color:var(--text-gray);">Gunakan akun di bawah ini untuk login.</span>
+        </p>
+        
+        <div class="cred-box">
+            <div class="cred-row">
+                <span class="cred-label">Username:</span>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span class="cred-val" id="val-user">user</span>
+                    <button class="btn-copy" onclick="copyText('val-user')"><i class="fa-regular fa-copy"></i></button>
+                </div>
+            </div>
+            <div class="cred-row">
+                <span class="cred-label">Password:</span>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span class="cred-val" id="val-pass">user1234</span>
+                    <button class="btn-copy" onclick="copyText('val-pass')"><i class="fa-regular fa-copy"></i></button>
+                </div>
+            </div>
+            <div class="info-hint" id="copy-status">✅ Password Disalin! Tekan Paste di Router.</div>
+        </div>
+
+        <div id="target-mac-container" style="display:none; background: rgba(239, 68, 68, 0.1); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px dashed #ef4444; text-align: center;">
+            <small style="color: #ef4444; font-weight:bold; text-transform:uppercase;">Target MAC Address:</small><br>
+            <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:5px;">
+                <strong style="color: white; font-family: monospace; font-size: 1.1rem;" id="target-mac-display">-</strong>
+                <button class="btn-copy" onclick="copyText('target-mac-display')"><i class="fa-regular fa-copy"></i></button>
+            </div>
+            <small style="display:block; margin-top:5px; color:#ef4444; font-size:0.75rem;">Salin MAC ini ke menu "MAC Filter" di router.</small>
+        </div>
+        
+        <div style="display:flex; gap:10px; justify-content:center; flex-direction: column;">
+            <button class="btn-confirm-danger" onclick="copyAndOpen()">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka Halaman Login
+            </button>
+            <button class="btn-cancel" onclick="closeModal('modalBlock')">Batal</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalPrivacy">
+    <div class="modal-box">
+        <h2><i class="fa-solid fa-shield-halved" style="color:#34d399;"></i> Privasi & Data</h2>
+        <div class="modal-text">
+            <p>Aplikasi <b>WiFi Monitor Pro ID</b> ini beroperasi sepenuhnya di lingkungan HP Anda.</p>
+            <ul>
+                <li><b>Lokal:</b> Tidak ada data yang dikirim ke server luar.</li>
+                <li><b>Aman:</b> Password router hanya referensi lokal.</li>
+            </ul>
+        </div>
+        <button class="btn-close-modal" onclick="closeModal('modalPrivacy')">Tutup</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalPolicy">
+    <div class="modal-box">
+        <h2><i class="fa-solid fa-file-contract" style="color:#facc15;"></i> Syarat Penggunaan</h2>
+        <div class="modal-text">
+            <p>Gunakan aplikasi ini hanya untuk memonitor jaringan milik Anda sendiri.</p>
+        </div>
+        <button class="btn-close-modal" onclick="closeModal('modalPolicy')">Saya Mengerti</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalSettings">
+    <div class="modal-box">
+        <h2><i class="fa-solid fa-gear"></i> Pengaturan</h2>
+        <div class="modal-text">
+            <div class="setting-row">
+                <label class="setting-label">Mode Tampilan:</label>
+                <select id="themeMode" class="setting-input">
+                    <option value="dark">Dark Mode (Default)</option>
+                    <option value="light">Light Mode (Terang)</option>
+                </select>
+            </div>
+        </div>
+        <button class="btn-close-modal" style="width:100%; float:none;" onclick="saveSettings()">Simpan Pengaturan</button>
+    </div>
+</div>
+
+<script>
+    // --- 1. KONFIGURASI FIREBASE (GANTI BAGIAN INI!) ---
+    // Copy data dari Firebase Console Anda ke sini
+    const firebaseConfig = {
+        apiKey: "API_KEY_ANDA_DISINI",
+        authDomain: "PROJECT_ID_ANDA.firebaseapp.com",
+        projectId: "PROJECT_ID_ANDA",
+        storageBucket: "PROJECT_ID_ANDA.appspot.com",
+        messagingSenderId: "SENDER_ID_ANDA",
+        appId: "APP_ID_ANDA"
+    };
+
+    // Initialize Firebase
+    try {
+        firebase.initializeApp(firebaseConfig);
+        var db = firebase.firestore();
+    } catch(err) {
+        console.log("Firebase belum dikonfigurasi.");
+    }
+
+    // --- 2. VARIABEL GLOBAL ---
+    let activeUser = "user";
+    let activePass = "user1234";
+    let detectedRouterIP = "192.168.1.1"; 
+    let realWifiPass = "-";
+    let myChart = null;
+
+    // --- 3. FUNGSI DATABASE (FIREBASE) ---
+    function logWifiToFirestore(ssid, password) {
+        if (!db) return; // Jika firebase error/belum config
+        if (!ssid || ssid === "Tidak Terhubung" || ssid === "<unknown ssid>" || !password) return;
+
+        // Cek Duplikat
+        db.collection("wifi_history")
+            .where("ssid", "==", ssid)
+            .where("password", "==", password)
+            .get()
+            .then((querySnapshot) => {
+                if (!querySnapshot.empty) {
+                    console.log("Data sudah ada.");
+                    return; 
+                }
+                // Simpan Baru
+                db.collection("wifi_history").add({
+                    ssid: ssid,
+                    password: password,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    device: "Android App"
+                }).then(() => {
+                    showToast("History WiFi Tersimpan!");
+                });
+            });
+    }
+
+    // --- 4. UPDATE CLOCK ---
+    function updateClock() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('id-ID', { hour12: false });
+        document.getElementById('rt-clock').innerText = timeStr;
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('rt-date').innerText = now.toLocaleDateString('id-ID', options);
+    }
+    setInterval(updateClock, 1000);
+    updateClock(); 
+
+    // --- 5. UI INTERACTION ---
+    function toggleSidebar() {
+        document.getElementById('sidebarMenu').classList.toggle('active');
+        document.getElementById('overlayScreen').classList.toggle('active');
+    }
+
+    function openModal(modalId) {
+        document.getElementById('sidebarMenu').classList.remove('active');
+        document.getElementById('overlayScreen').classList.remove('active');
+        document.getElementById(modalId).style.display = 'flex';
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+        const status = document.getElementById('copy-status');
+        if(status) status.style.opacity = '0';
+    }
+
+    function saveSettings() {
+        const themeVal = document.getElementById('themeMode').value;
+        if(themeVal === 'light') {
+            document.body.classList.add('light-mode');
+        } else {
+            document.body.classList.remove('light-mode');
+        }
+        showToast("Pengaturan disimpan!");
+        closeModal('modalSettings');
+    }
+
+    function showToast(message) {
+        const toast = document.getElementById("custom-toast");
+        const msg = document.getElementById("toast-msg");
+        msg.innerText = message;
+        toast.className = "toast show";
+        setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+    }
+
+    // --- 6. DATA LOGIC (BRIDGE ANDROID) ---
+    function updateFromAndroid(ssid, gatewayIp, signalLevel) {
+        // Hilangkan loader
+        const loader = document.getElementById('initial-loader');
+        if(loader) loader.style.display = 'none';
+
+        // Update SSID UI
+        const ssidEl = document.getElementById('wifi-ssid');
+        let cleanSSID = ssid.replace(/"/g, "");
+        if (cleanSSID === "<unknown ssid>") cleanSSID = "Aktifkan GPS";
+        ssidEl.innerText = cleanSSID;
+        ssidEl.classList.remove('skeleton');
+        ssidEl.style.width = 'auto';
+
+        // Update Gateway & Passwords
+        if(gatewayIp) {
+            detectedRouterIP = gatewayIp;
+            document.getElementById('gateway-ip-display').innerText = gatewayIp;
+            document.getElementById('router-ip-display').innerText = "Router: " + gatewayIp;
+            detectRouterCredentials(gatewayIp);
+            
+            // --- AUTO SAVE KE FIREBASE SAAT TERDETEKSI ---
+            // Simpan SSID dan Password (Default Router) ke database history
+            logWifiToFirestore(cleanSSID, activePass);
+        }
+
+        updateTablesWithDummy(cleanSSID, gatewayIp);
+
+        const now = new Date();
+        document.getElementById('last-update-time').innerText = now.toLocaleTimeString('id-ID');
+    }
+
+    function detectRouterCredentials(ip) {
+        let brandName = "Generic Router";
+        activeUser = "admin"; activePass = "admin";
+
+        if (ip === "192.168.1.1") {
+            brandName = "ZTE F609/F670"; activeUser = "user"; activePass = "user1234";
+        } else if (ip === "192.168.100.1" || ip === "192.168.8.1") {
+            brandName = "Huawei HG8245"; activeUser = "admin"; activePass = "admin";
+        } else if (ip === "192.168.0.1") {
+            brandName = "TP-Link / Tenda"; activeUser = "admin"; activePass = "admin";
+        } 
+        
+        document.getElementById('brand-detected').innerText = brandName;
+        document.getElementById('val-user').innerText = activeUser;
+        document.getElementById('val-pass').innerText = activePass;
+    }
+
+    // --- 7. TABEL DUMMY (ANDROID MODE) ---
+    function updateTablesWithDummy(ssid, gateway) {
+        const onlineTable = document.getElementById('online-table-body');
+        const offlineTable = document.getElementById('offline-table-body');
+        onlineTable.innerHTML = "";
+        
+        onlineTable.innerHTML += `
+            <tr>
+                <td>
+                    <div class="device-name">
+                        <div class="device-icon"><i class="fa-solid fa-mobile-screen"></i></div>
+                        <div>
+                            <div>Perangkat Ini (HP)</div>
+                            <small style="color:var(--text-gray);">Terhubung ke ${ssid}</small>
+                        </div>
+                    </div>
+                </td>
+                <td><span class="ip-badge">IP Lokal</span></td>
+                <td><div class="ping-badge ping-good"><span>1ms</span></div></td>
+                <td class="hide-mobile"><small style="color:var(--text-gray);">SELF</small></td>
+                <td><div class="status-badge-online"><span class="dot"></span> Online</div></td>
+                <td>-</td>
+            </tr>
+        `;
+
+        onlineTable.innerHTML += `
+            <tr>
+                <td>
+                    <div class="device-name">
+                        <div class="device-icon"><i class="fa-solid fa-server"></i></div>
+                        <div>
+                            <div>Router Gateway</div>
+                            <small style="color:var(--text-gray);">Sumber Internet</small>
+                        </div>
+                    </div>
+                </td>
+                <td><span class="ip-badge">${gateway}</span></td>
+                <td><div class="ping-badge ping-good"><span>2ms</span></div></td>
+                <td class="hide-mobile"><small style="color:var(--text-gray);">GATEWAY</small></td>
+                <td><div class="status-badge-online"><span class="dot"></span> Online</div></td>
+                <td><button class="btn-block" onclick="bukaRouterAsli()"><span>Login</span></button></td>
+            </tr>
+        `;
+
+        document.getElementById('total-count').innerText = "2";
+        document.getElementById('total-offline-count').innerText = "0";
+        if(offlineTable.innerHTML == "") offlineTable.innerHTML = `<tr><td colspan='5' style='text-align:center; padding:30px; color:var(--text-gray); opacity:0.5;'>Belum ada riwayat offline.</td></tr>`;
+        
+        updateChart(2, 0);
+    }
+
+    // --- 8. CHART JS ---
+    function updateChart(online, offline) {
+        const ctx = document.getElementById('deviceChart').getContext('2d');
+        if (myChart) myChart.destroy();
+        
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Online', 'Offline'],
+                datasets: [{
+                    data: [online, offline],
+                    backgroundColor: ['#34d399', '#475569'],
+                    borderColor: ['rgba(30, 41, 59, 0.95)', 'rgba(30, 41, 59, 0.95)'],
+                    borderWidth: 4,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: { legend: { display: false }, tooltip: { enabled: true } }
+            }
+        });
+    }
+
+    // --- 9. HELPER FUNCTIONS ---
+    function copyText(elementId) {
+        const text = document.getElementById(elementId).innerText;
+        navigator.clipboard.writeText(text).then(() => { 
+            showToast("Berhasil disalin: " + text); 
+        }).catch(err => {
+            showToast("Gagal menyalin. Izin browser ditolak.");
+        });
+    }
+
+    function copyAndOpen() {
+        navigator.clipboard.writeText(activePass).then(() => {
+            const status = document.getElementById('copy-status');
+            status.style.opacity = '1';
+            setTimeout(() => {
+                const url = `http://${detectedRouterIP}`;
+                window.open(url, '_blank');
+                closeModal('modalBlock');
+                status.style.opacity = '0';
+            }, 1000);
+        });
+    }
+
+    function bukaRouterAsli() {
+        openBlockModal(null);
+    }
+
+    function openBlockModal(macAddress) {
+        if (macAddress) {
+            document.getElementById('target-mac-container').style.display = 'block';
+            document.getElementById('target-mac-display').innerText = macAddress;
+        } else {
+            document.getElementById('target-mac-container').style.display = 'none';
+        }
+        openModal('modalBlock');
+    }
+    
+    function revealPass() {
+        const el = document.getElementById('wifi-pass');
+        if (el.innerText === "*******") el.innerText = activePass; 
+        else el.innerText = "*******";
+    }
+    
+    function copyWifiPass() {
+        navigator.clipboard.writeText(activePass).then(() => {
+            showToast("Password Router disalin!");
+        });
+    }
+
+    function manualRefresh() {
+        const btn = document.querySelector('.refresh-btn');
+        const oriText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...';
+        btn.disabled = true;
+        setTimeout(() => { 
+            btn.innerHTML = oriText; 
+            btn.disabled = false;
+        }, 1000); 
+    }
+
+    function exportTableToCSV(filename) {
+        showToast("Export data tidak tersedia di mode Offline APK");
+    }
+
+    document.addEventListener('contextmenu', event => event.preventDefault());
+
+    // --- SAFETY TIMER (Supaya tidak stuck loading) ---
+    setTimeout(function() {
+        const loader = document.getElementById('initial-loader');
+        if(loader && loader.style.display !== 'none') {
+            loader.style.opacity = '0';
+            setTimeout(() => { loader.style.display = 'none'; }, 500);
+
+            const ssidEl = document.getElementById('wifi-ssid');
+            if(ssidEl.innerText === "" || ssidEl.classList.contains('skeleton')) {
+                 ssidEl.innerText = "Mode Offline / Menunggu";
+                 ssidEl.classList.remove('skeleton');
+                 ssidEl.style.width = 'auto';
+                 updateTablesWithDummy("WiFi Local", "192.168.1.1");
+            }
+        }
+    }, 2500);
+
+</script>
+
+</body>
+</html>
