@@ -18,7 +18,7 @@
         body {
             margin: 0;
             height: 100vh;
-            height: 100dvh; /* Dynamic viewport height untuk mobile browser */
+            height: 100dvh;
             font-family: 'VT323', monospace;
             background-color: var(--black);
             color: var(--green);
@@ -27,6 +27,12 @@
             justify-content: center;
             align-items: center;
             cursor: text;
+
+            /* --- ANTI COPY PASTE CSS --- */
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none;    /* Firefox */
+            -ms-user-select: none;     /* IE10+/Edge */
+            user-select: none;         /* Standard */
         }
 
         /* --- CRT MONITOR EFFECTS --- */
@@ -62,9 +68,8 @@
         .terminal-container {
             position: relative;
             z-index: 5;
-            width: 95%; /* Lebih lebar di mobile */
+            width: 95%;
             max-width: 700px;
-            /* Flex height agar responsif jika keyboard muncul */
             height: auto;
             max-height: 90vh;
             display: flex;
@@ -76,12 +81,12 @@
             background: rgba(0, 10, 0, 0.9);
             border: 1px solid var(--dim-green);
             box-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
-            padding: 20px; /* Padding sedikit dikurangi untuk mobile */
+            padding: 20px;
             position: relative;
-            min-height: 300px; /* Tinggi minimum lebih kecil */
+            min-height: 300px;
             border-radius: 5px;
             transition: all 0.2s;
-            overflow-y: auto; /* Scroll jika konten panjang */
+            overflow-y: auto;
         }
 
         .terminal-window:hover, .terminal-window:focus-within {
@@ -89,13 +94,13 @@
             border-color: var(--green);
         }
 
-        /* Typography Responsif */
+        /* Typography */
         h2, h1 {
             margin: 0;
             text-transform: uppercase;
             letter-spacing: 2px;
             text-shadow: 2px 2px 0px var(--dim-green);
-            font-size: clamp(1.5rem, 5vw, 2.5rem); /* Ukuran font dinamis */
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
         }
 
         p, span, div {
@@ -148,22 +153,26 @@
             padding-top: 2px;
             font-size: clamp(0.9rem, 3vw, 1.2rem);
         }
+        
+        /* IZINKAN COPY PASTE HANYA DI INPUT */
         input, textarea {
             background: transparent; border: none; color: var(--green);
             font-family: 'VT323', monospace; 
-            font-size: clamp(1.2rem, 4vw, 1.5rem); /* Input text lebih besar di HP */
+            font-size: clamp(1.2rem, 4vw, 1.5rem);
             width: 100%;
             outline: none; text-shadow: 0 0 5px var(--dim-green);
+            -webkit-user-select: text;
+            user-select: text; /* Agar user masih bisa ngetik */
         }
         textarea { height: 100px; resize: none; line-height: 1.2; }
 
         .btn-hack {
             margin-top: 20px; background: transparent; border: 1px solid var(--green);
-            color: var(--green); padding: 12px 20px; /* Padding lebih besar untuk jari */
+            color: var(--green); padding: 12px 20px;
             font-family: 'VT323', monospace;
             font-size: 1.2rem; cursor: pointer; text-transform: uppercase;
             width: 100%; position: relative; overflow: hidden; transition: 0.2s;
-            -webkit-tap-highlight-color: transparent; /* Hilangkan highlight biru di mobile */
+            -webkit-tap-highlight-color: transparent;
         }
         .btn-hack::before {
             content: ''; position: absolute; top: 0; left: -100%;
@@ -207,13 +216,12 @@
             height: 100%; background: var(--green); width: 0%; transition: width 0.1s;
         }
 
-        /* --- COPYRIGHT / SYSTEM FOOTER --- */
         .sys-footer {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
-            background: rgba(0,0,0,0.8); /* Background agar terbaca di atas matrix */
+            background: rgba(0,0,0,0.8);
             text-align: center;
             font-size: 0.9rem;
             color: var(--dim-green);
@@ -234,7 +242,6 @@
             padding: 0 5px;
         }
         
-        /* Media Query Khusus Layar Sangat Kecil (iPhone SE dsb) */
         @media (max-height: 500px) {
             .terminal-container { height: 100vh; justify-content: flex-start; padding-top: 10px;}
             .terminal-window { max-height: 80vh; }
@@ -307,7 +314,7 @@
         </div>
         
         <div class="sys-footer" style="position: static; margin-top: 15px; background: transparent;">
-            © 2025 [ V:2.1 ] - Made by: <a href="https://www.instagram.com/ridhosandhika_?igsh=MW9laWY4aDZhdWJsOQ==a" target="_blank">Ridho Sandhika</a>
+            © 2025 [ V:2.1 ] • Dev: <a href="https://www.instagram.com/ridhosandhika_?igsh=MW9laWY4aDZhdWJsOQ==a" target="_blank">Ridho Sandhika</a>
         </div>
     </div>
 
@@ -331,9 +338,7 @@
         try {
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
-        } catch(e) {
-            console.log("Firebase not initialized (DEMO MODE)");
-        }
+        } catch(e) { console.log("Demo Mode"); }
 
         // --- AUDIO ENGINE ---
         let audioCtx;
@@ -353,30 +358,39 @@
         }
         function playKeySound() { playTone(600 + Math.random() * 200, 'square', 0.05); }
 
+        // --- SECURITY: ANTI COPY-PASTE & RIGHT CLICK ---
+        // 1. Matikan Klik Kanan
+        document.addEventListener("contextmenu", function(e){
+            e.preventDefault();
+            playTone(150, 'sawtooth', 0.2); // Bunyi Error
+            return false;
+        });
+
+        // 2. Matikan Kombinasi Keyboard (Ctrl+C, Ctrl+V, Ctrl+U, F12)
+        document.addEventListener("keydown", function(e) {
+            if (e.ctrlKey && (e.key === "c" || e.key === "C" || e.key === "v" || e.key === "V" || e.key === "u" || e.key === "U")) {
+                e.preventDefault();
+                playTone(150, 'sawtooth', 0.2);
+                return false;
+            }
+            if(e.keyCode == 123) { // F12
+                e.preventDefault();
+                return false;
+            }
+        });
+
         // --- VISUALS ---
         const c = document.getElementById("c");
         const ctx = c.getContext("2d");
         
-        // Responsive Canvas
-        function resizeCanvas() {
-            c.height = window.innerHeight; 
-            c.width = window.innerWidth;
-        }
+        function resizeCanvas() { c.height = window.innerHeight; c.width = window.innerWidth; }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
         const matrixChars = "01ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ";
         const font_size = 14; 
-        
-        // Dinamis kolom berdasarkan lebar layar saat ini
-        let columns = c.width/font_size; 
-        let drops = [];
-        
-        function initMatrix() {
-            columns = c.width/font_size;
-            drops = [];
-            for(let x = 0; x < columns; x++) drops[x] = 1;
-        }
+        let columns = c.width/font_size; let drops = [];
+        function initMatrix() { columns = c.width/font_size; drops = []; for(let x = 0; x < columns; x++) drops[x] = 1; }
         initMatrix();
         window.addEventListener('resize', initMatrix);
 
@@ -392,9 +406,7 @@
         }
         setInterval(drawMatrix, 40);
 
-        setInterval(() => {
-            document.getElementById('clock').innerText = new Date().toLocaleTimeString('id-ID');
-        }, 1000);
+        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('id-ID'); }, 1000);
 
         // --- SYSTEM FLOW ---
         window.startSystem = function() {
@@ -412,7 +424,6 @@
                 const p = document.createElement('div');
                 p.className = 'boot-line'; p.innerHTML = `[ <span class="success">OK</span> ] ${logs[i]}`;
                 bootLog.appendChild(p);
-                // Scroll to bottom agar log terbaru terlihat di HP
                 bootLog.scrollTop = bootLog.scrollHeight;
                 await new Promise(r => setTimeout(r, 400));
             }
@@ -437,7 +448,7 @@
             el.addEventListener('keydown', () => playTone(800, 'square', 0.03));
         });
 
-        // --- PERTANYAAN MUHASABAH (HARD MODE) ---
+        // --- PERTANYAAN ---
         const hardQuestions = [
             "Adakah perkataan atau perilakuku yang pernah menyakiti hatimu, baik sengaja maupun tidak? Tolong beritahu aku.",
             "Jujur, apakah aku sering terlihat 'alim' di sosmed, tapi aslinya jauh dari sunnah saat kita bertemu?",
@@ -448,8 +459,7 @@
             "Sebutkan satu dosa/keburukan terbesarku yang selama ini kau tutup-tutupi karena tidak enak menegurku."
         ];
 
-        let namaUser = "";
-        let currentQuestion = "";
+        let namaUser = ""; let currentQuestion = "";
 
         window.nextStep = function() {
             const nama = document.getElementById('inputNama').value;
@@ -489,15 +499,11 @@
             try {
                 if(db) {
                     await addDoc(collection(db, "pesan_jujur"), {
-                        nama_pengirim: namaUser,
-                        pertanyaan: currentQuestion,
-                        isi_pesan: pesan,
-                        waktu: serverTimestamp(),
-                        tema: "muhasabah_hard"
+                        nama_pengirim: namaUser, pertanyaan: currentQuestion, isi_pesan: pesan,
+                        waktu: serverTimestamp(), tema: "muhasabah_hard"
                     });
                 } else {
                     await new Promise(r => setTimeout(r, 1000));
-                    console.log("Simulasi:", pesan);
                 }
                 document.getElementById('step2').classList.add('hidden');
                 document.getElementById('step3').classList.remove('hidden');
@@ -509,4 +515,4 @@
         });
     </script>
 </body>
-    </html>
+</html>
